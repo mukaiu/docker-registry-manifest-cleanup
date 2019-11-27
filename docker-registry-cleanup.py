@@ -65,14 +65,14 @@ try:
 	if r.status_code == 401:
 		if "Www-Authenticate" in r.headers and "Bearer" in r.headers["Www-Authenticate"]:
 			#We have token based auth, try it
-			auth_header = r.headers["Www-Authenticate"].split(" ")[1]
+			auth_header = r.headers["Www-Authenticate"].replace("Bearer ","")
 			token_authentication = True
 			token_auth_details = dict(s.split("=", 1) for s in re.sub('"',"",auth_header).split(","))
 			r2 = requests.get("%s?service=%s&scope=" % (token_auth_details["realm"],token_auth_details["service"]), auth=registry_auth, verify=cert_verify)
 			if r2.status_code == 401:
 				exit_with_error("Got an authentication error connecting to the registry - even with token authentication. Check credentials, or add REGISTRY_AUTH='username:password'")
 			else:
-				auth_token = r2.json()["token"]
+				auth_token = r2.json()["access_token"]
 				registry_headers = {"Authorization": "Bearer %s" % (auth_token)}
 		else:
 			exit_with_error("Got an authentication error connecting to the registry. Check credentials, or add REGISTRY_AUTH='username:password'")
@@ -185,7 +185,7 @@ else:
 			else:
 				if token_authentication:
 					r2 = requests.get("%s?service=%s&scope=repository:%s:*" % (token_auth_details["realm"],token_auth_details["service"],repo), auth=registry_auth, verify=cert_verify)
-					auth_token = r2.json()["token"]
+					auth_token = r2.json()["access_token"]
 					registry_headers = {"Authorization": "Bearer %s" % (auth_token)}
 					r = requests.delete("%s/v2/%s/manifests/sha256:%s" % (registry_url, repo, manifest), verify=cert_verify, headers=registry_headers)
 				else:
